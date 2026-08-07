@@ -737,7 +737,8 @@
           semPoints += (grade.gpa * sub.credits);
         });
 
-        const semGPA = semCredits > 0 ? (semPoints / semCredits) : 0;
+        let semGPA = semCredits > 0 ? (semPoints / semCredits) : 0;
+        semGPA = Math.round(semGPA * 100) / 100;
         const semGpaEl = document.getElementById(`sem-gpa-${sIndex}`);
         if (semGpaEl) semGpaEl.textContent = semGPA.toFixed(2);
 
@@ -746,7 +747,8 @@
       });
 
       state.accumulatedCredits = totalCreditsAll;
-      state.cgpa = totalCreditsAll > 0 ? (totalPointsAll / totalCreditsAll) : 0;
+      let rawCgpa = totalCreditsAll > 0 ? (totalPointsAll / totalCreditsAll) : 0;
+      state.cgpa = Math.round(rawCgpa * 100) / 100;
 
       document.getElementById('display-cgpa').textContent = state.cgpa.toFixed(2);
       document.getElementById('display-credits').textContent = totalCreditsAll;
