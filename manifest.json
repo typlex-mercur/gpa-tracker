@@ -1,0 +1,16 @@
+{
+  "name": "GPA Tracker",
+  "short_name": "GPA Tracker",
+  "description": "Ứng dụng theo dõi điểm số và lên mục tiêu",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#2563EB",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png"
+    }
+  ]
+}
