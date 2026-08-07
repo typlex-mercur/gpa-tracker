@@ -873,6 +873,7 @@
       try {
         await fetch(`https://api.github.com/gists/${gistId}`, {
           method: 'PATCH',
+          keepalive: true,
           headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' },
           body: JSON.stringify({ files: gistContent })
         });
@@ -883,7 +884,8 @@
 
     async function autoPullFromGist(token, gistId) {
       try {
-        const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+        const res = await fetch(`https://api.github.com/gists/${gistId}?t=${Date.now()}`, {
+          cache: 'no-store',
           headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Cache-Control': 'no-cache' }
         });
         if (!res.ok) return;
@@ -1044,6 +1046,27 @@
         alert('Lỗi khi tải dữ liệu. Kiểm tra lại thông tin.');
       }
     }
+
+    document.addEventListener("visibilitychange", () => {
+      const token = localStorage.getItem('gpaTrackerGithubToken');
+      const gistId = localStorage.getItem('gpaTrackerGistId');
+      if (!token || !gistId) return;
+
+      if (document.visibilityState === 'hidden') {
+        if (syncTimeout) {
+          clearTimeout(syncTimeout);
+          syncTimeout = null;
+          if (!isAutoPulling) {
+            autoPushToGist(token, gistId);
+          }
+        }
+      } else {
+        isAutoPulling = true;
+        autoPullFromGist(token, gistId).finally(() => {
+          isAutoPulling = false;
+        });
+      }
+    });
 
     document.addEventListener('DOMContentLoaded', init);
 
