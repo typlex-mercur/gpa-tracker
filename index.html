@@ -372,6 +372,9 @@
       activeSemesterIndex: -1 // To track which semester is expanded
     };
 
+    let isAutoPulling = false;
+    let syncTimeout = null;
+
     function init() {
       const saved = localStorage.getItem('gpaTrackerState_v4');
       if (saved) {
@@ -401,6 +404,16 @@
       }
 
       renderSemesters();
+
+      // Auto Pull on start
+      const token = localStorage.getItem('gpaTrackerGithubToken');
+      const gistId = localStorage.getItem('gpaTrackerGistId');
+      if (token && gistId) {
+        isAutoPulling = true;
+        autoPullFromGist(token, gistId).finally(() => {
+          isAutoPulling = false;
+        });
+      }
     }
 
     function toggleDarkMode() {
@@ -834,6 +847,55 @@
 
     function saveData() {
       localStorage.setItem('gpaTrackerState_v4', JSON.stringify(state));
+      
+      const token = localStorage.getItem('gpaTrackerGithubToken');
+      const gistId = localStorage.getItem('gpaTrackerGistId');
+      if (token && gistId && !isAutoPulling) {
+        if (syncTimeout) clearTimeout(syncTimeout);
+        syncTimeout = setTimeout(() => {
+           autoPushToGist(token, gistId);
+        }, 2000); // 2 seconds debounce
+      }
+    }
+
+    async function autoPushToGist(token, gistId) {
+      const gistContent = {
+        "gpa_tracker_data.json": {
+          "content": JSON.stringify(state)
+        }
+      };
+      try {
+        await fetch(`https://api.github.com/gists/${gistId}`, {
+          method: 'PATCH',
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' },
+          body: JSON.stringify({ files: gistContent })
+        });
+      } catch (err) {
+        console.error('Auto Push Error:', err);
+      }
+    }
+
+    async function autoPullFromGist(token, gistId) {
+      try {
+        const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Cache-Control': 'no-cache' }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const file = data.files['gpa_tracker_data.json'];
+        if (!file) return;
+        
+        const importedState = JSON.parse(file.content);
+        if (importedState && importedState.semesters) {
+           state = importedState;
+           localStorage.setItem('gpaTrackerState_v4', JSON.stringify(state));
+           document.getElementById('setting-total-credits').value = state.totalCredits;
+           document.getElementById('display-total-credits').textContent = state.totalCredits;
+           renderSemesters();
+        }
+      } catch (err) {
+        console.error('Auto Pull Error:', err);
+      }
     }
 
     function exportJSON() {
